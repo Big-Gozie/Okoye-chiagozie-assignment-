@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <pthread.h>
+
+#define THREADS 5000
+
+int sharedValue = 0;
+pthread_mutex_t lock;
+
+void* increaseWithMutex(void* arg)
+{
+    pthread_mutex_lock(&lock);
+
+    int temp = sharedValue;
+
+    for (volatile int i = 0; i < 500; i++);
+
+    temp++;
+    sharedValue = temp;
+
+    pthread_mutex_unlock(&lock);
+
+    return NULL;
+}
+
+void* increaseWithoutMutex(void* arg)
+{
+    int temp = sharedValue;
+
+    for (volatile int i = 0; i < 500; i++);
+
+    temp++;
+    sharedValue = temp;
+
+    return NULL;
+}
+
+int main()
+{
+    pthread_t thread[THREADS];
+
+    printf("========== MUTEX LOCK DEMONSTRATION ==========\n\n");
+
+    pthread_mutex_init(&lock, NULL);
+
+    sharedValue = 0;
+
+    for (int i = 0; i < THREADS; i++)
+    {
+        pthread_create(&thread[i], NULL, increaseWithMutex, NULL);
+    }
+
+    for (int i = 0; i < THREADS; i++)
+    {
+        pthread_join(thread[i], NULL);
+    }
+
+    printf("Using Mutex Lock\n");
+    printf("Expected Value : %d\n", THREADS);
+    printf("Actual Value   : %d\n\n", sharedValue);
+
+    pthread_mutex_destroy(&lock);
+
+    sharedValue = 0;
+
+    for (int i = 0; i < THREADS; i++)
+    {
+        pthread_create(&thread[i], NULL, increaseWithoutMutex, NULL);
+    }
+
+    for (int i = 0; i < THREADS; i++)
+    {
+        pthread_join(thread[i], NULL);
+    }
+
+    printf("Without Mutex Lock\n");
+    printf("Expected Value : %d\n", THREADS);
+    printf("Actual Value   : %d\n", sharedValue);
+
+    return 0;
+}
